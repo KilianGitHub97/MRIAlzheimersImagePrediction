@@ -6,7 +6,6 @@ Created on Tue Aug  3 11:14:39 2021
 """
 # imports
 import os
-import numpy as np
 import random
 import shutil
 import matplotlib.pyplot as plt

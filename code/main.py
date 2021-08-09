@@ -6,36 +6,34 @@ Created on Sat Jul 31 13:14:31 2021
 """
 #Libraries
 import os
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.preprocessing import flow_from_directory
 
 
 #setwd
-PATH = "C:\\Users\\kilia\\Documents\\GitHub\\MRIAlzheimersPrediction\\code"
+PATH = "C:\\Users\\kilia\\Documents\\GitHub\\MRIAlzheimersImagePrediction\\code"
 os.chdir(PATH)
 
 #import personal module
 import funcs as fun
 
 #import data
-IMGPATH = "..\\data\\train"
+TRAIN_DIRECTORY = "..\\data\\train"
 TEST_DIRECTORY = "..\\data\\test"
 IMG_WIDTH = 176
 IMG_HEIGHT = 208
 BATCH_SIZE = 50
 
 #count files
-N = fun.count_obs(IMGPATH)
+N = fun.count_obs(TRAIN_DIRECTORY)
 
 #get class names
-NAMES = fun.get_class_names(IMGPATH)
+NAMES = fun.get_class_names(TRAIN_DIRECTORY)
 
 #check the balance of the Dataset
 fun.balance_check(
-    folder_path = IMGPATH,
+    folder_path = TRAIN_DIRECTORY,
     class_names = NAMES,
     number_of_obs = N,
     normalize=True
@@ -44,10 +42,10 @@ fun.balance_check(
 # #make test directory
 # fun.make_test_folder(
 #     test_directory = TEST_DIRECTORY,
-#     train_directory = IMGPATH,
+#     train_directory = TRAIN_DIRECTORY,
 #     classes = NAMES,
 #     total_number_of_observations = N,
-#     percentage_test_directory = 20
+#     percentage_test_directory = 20 
 #     )
 
 
@@ -66,7 +64,7 @@ data_generation = ImageDataGenerator(
 
 #read in training data
 train = data_generation.flow_from_directory(
-    directory = IMGPATH, 
+    directory = TRAIN_DIRECTORY, 
     target_size = (IMG_WIDTH, IMG_HEIGHT),
     color_mode = "grayscale",
     class_mode = "categorical",
@@ -75,9 +73,9 @@ train = data_generation.flow_from_directory(
     subset = "training"
     )
 
-#load test data
-test = data_generation.flow_from_directory(
-    directory = IMGPATH, 
+#load validation data
+validation = data_generation.flow_from_directory(
+    directory = TRAIN_DIRECTORY, 
     target_size = (IMG_WIDTH, IMG_HEIGHT),
     color_mode = "grayscale",
     class_mode = "categorical",
@@ -86,9 +84,19 @@ test = data_generation.flow_from_directory(
     subset = "validation"
 )
 
+#load test data
+test = data_generation.flow_from_directory(
+    directory = TEST_DIRECTORY, 
+    target_size = (IMG_WIDTH, IMG_HEIGHT),
+    color_mode = "grayscale",
+    class_mode = "categorical",
+    batch_size = BATCH_SIZE,
+    shuffle = True
+    )
+
 #plot some sample images for the categories
 fun.show_sample_img(
-    img_path = IMGPATH,
+    img_path = TRAIN_DIRECTORY,
     col_names = NAMES
     )
 
