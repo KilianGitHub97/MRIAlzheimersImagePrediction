@@ -1,0 +1,5 @@
+- install tensorflow: https://docs.anaconda.com/anaconda/user-guide/tasks/tensorflow/
+- tensorflow installing issue (multiple j5py versions): https://github.com/h5py/h5py/issues/1477#issuecomment-767677551
+- keras tutorial: https://keras.io/examples/vision/image_classification_from_scratch/
+- visualisation: https://www.machinecurve.com/index.php/2019/12/03/visualize-keras-models-overview-of-visualization-methods-tools/
+- visualisation: https://www.tensorflow.org/tutorials/load_data/images

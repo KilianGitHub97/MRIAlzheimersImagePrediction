@@ -1,0 +1,22 @@
+- Dataset from https://www.kaggle.com/tourist55/alzheimers-dataset-4-class-of-images
+- Tutorial: https://www.kaggle.com/amyjang/alzheimer-mri-model-tensorflow-2-3-data-loading
+- Good Performance: https://www.kaggle.com/schorsi/classification-of-alzheimers-95-totw
+- Article on topic: https://www.nih.gov/news-events/nih-research-matters/computers-detect-alzheimers-disease-brain-scans
+- Keras: https://keras.io/api/preprocessing/
+- Tutorial: https://www.geeksforgeeks.org/python-image-classification-using-keras/
+
+Context
+The Data is hand collected from various websites with each and every labels verified.
+
+Content
+The data consists of MRI images. The data has four classes of images both in training as 
+well as a testing set:
+
+1.Mild Demented
+2.Moderate Demented
+3.Non Demented
+4.Very Mild Demented
+
+Inspiration
+The main inspiration behind sharing this Dataset is to make a very highly accurate 
+model predict the stage of Alzheimers.
