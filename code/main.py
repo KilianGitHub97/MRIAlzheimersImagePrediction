@@ -26,20 +26,28 @@ IMG_HEIGHT = 208
 BATCH_SIZE = 50
 
 #count files
-N = fun.count_obs(TRAIN_DIRECTORY)
+N_TRAIN = fun.count_obs(TRAIN_DIRECTORY)
+N_TEST = fun.count_obs(TEST_DIRECTORY)
 
 #get class names
 NAMES = fun.get_class_names(TRAIN_DIRECTORY)
 
 #check the balance of the Dataset
-fun.balance_check(
+fun.balance_check( #Train
     folder_path = TRAIN_DIRECTORY,
     class_names = NAMES,
-    number_of_obs = N,
-    normalize=True
+    number_of_obs = N_TRAIN,
+    normalize = True
+    )
+fun.balance_check( #Test
+    folder_path = TEST_DIRECTORY,
+    class_names = NAMES,
+    number_of_obs = N_TEST,
+    normalize = False
     )
 
-# #make test directory
+#CAUTION, DO ONLY APPLY ONCE!!!!!!!!
+# #make test directory 
 # fun.make_test_folder(
 #     test_directory = TEST_DIRECTORY,
 #     train_directory = TRAIN_DIRECTORY,
@@ -48,10 +56,9 @@ fun.balance_check(
 #     percentage_test_directory = 20 
 #     )
 
-
 #calc min batch size to get a remainer of 0
 fun.calc_batch_size_no_remainer(
-    observations = N,
+    observations = N_TRAIN,
     max_batch_size = 150,
     min_batch_size = 5
     )
@@ -99,6 +106,8 @@ fun.show_sample_img(
     img_path = TRAIN_DIRECTORY,
     col_names = NAMES
     )
+
+
 
 #draw baseline model
 model = keras.Sequential([

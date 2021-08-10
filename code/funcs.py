@@ -31,12 +31,14 @@ def calc_batch_size_no_remainer(observations, max_batch_size, min_batch_size):
         modulus = observations % denominator
         if modulus == 0:
             if denominator == 1:
-                print("There is no denominator in your specified range (other than "
-                      "1) that can divide your number of observations without a remainer")
+                output = "There is no denominator in your specified range (other than 1) that can divide your number of observations without a remainer"
             else:
-                print("The first number to divide your observations without "
-                      "a remainer is {}.".format(denominator))
-            break
+                output = "The first number to divide your observations without a remainer is {}".format(denominator)
+                break
+        else:
+            output = "There is no number (in your specified range) that results in a remainer of 0 for your number of observations."
+    return output    
+ 
 ##################### get class labels as a list ##########################     
 def get_class_names(folder_path):
     classnames = []
