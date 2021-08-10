@@ -9,6 +9,9 @@ import os
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from keras.utils import plot_model
+from keras.applications.vgg19 import VGG19
+from sklearn.metrics import classification_report
 
 
 #setwd
@@ -23,7 +26,7 @@ TRAIN_DIRECTORY = "..\\data\\train"
 TEST_DIRECTORY = "..\\data\\test"
 IMG_WIDTH = 176
 IMG_HEIGHT = 208
-BATCH_SIZE = 50
+BATCH_SIZE = 32
 
 #count files
 N_TRAIN = fun.count_obs(TRAIN_DIRECTORY)
@@ -64,16 +67,24 @@ fun.calc_batch_size_no_remainer(
     )
 
 #data augmentation
-data_generation = ImageDataGenerator(
-    validation_split=0.2,
+data_generation_train = ImageDataGenerator(
+    validation_split = 0.2,
+    rescale = 1./255,
+    width_shift_range = 0.1,
+    height_shift_range = 0.1,
+    fill_mode = "nearest",
+    brightness_range = [0.8, 1.2] #1 = neutral
+    )
+
+data_generation_test = ImageDataGenerator(
     rescale=1./255
     )
 
 #read in training data
-train = data_generation.flow_from_directory(
+train = data_generation_train.flow_from_directory(
     directory = TRAIN_DIRECTORY, 
     target_size = (IMG_WIDTH, IMG_HEIGHT),
-    color_mode = "grayscale",
+    color_mode = "rgb",
     class_mode = "categorical",
     batch_size = BATCH_SIZE,
     shuffle = True,
@@ -81,10 +92,10 @@ train = data_generation.flow_from_directory(
     )
 
 #load validation data
-validation = data_generation.flow_from_directory(
+validation = data_generation_train.flow_from_directory(
     directory = TRAIN_DIRECTORY, 
     target_size = (IMG_WIDTH, IMG_HEIGHT),
-    color_mode = "grayscale",
+    color_mode = "rgb",
     class_mode = "categorical",
     batch_size = BATCH_SIZE,
     shuffle = True,
@@ -92,10 +103,10 @@ validation = data_generation.flow_from_directory(
 )
 
 #load test data
-test = data_generation.flow_from_directory(
+test = data_generation_test.flow_from_directory(
     directory = TEST_DIRECTORY, 
     target_size = (IMG_WIDTH, IMG_HEIGHT),
-    color_mode = "grayscale",
+    color_mode = "rgb",
     class_mode = "categorical",
     batch_size = BATCH_SIZE,
     shuffle = True
@@ -104,14 +115,14 @@ test = data_generation.flow_from_directory(
 #plot some sample images for the categories
 fun.show_sample_img(
     img_path = TRAIN_DIRECTORY,
-    col_names = NAMES
+    col_names = NAMES,
+    save_img = False
     )
 
-
-
+################### baseline model ##################
 #draw baseline model
-model = keras.Sequential([
-    keras.layers.InputLayer(input_shape=(IMG_WIDTH, IMG_HEIGHT, 1)),
+baseline = keras.Sequential([
+    keras.layers.InputLayer(input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)),
     keras.layers.Conv2D(32, (3, 3), padding="valid", activation="relu"),
     keras.layers.MaxPooling2D(),
     keras.layers.Conv2D(64, (3, 3), activation="relu"),
@@ -122,7 +133,7 @@ model = keras.Sequential([
     keras.layers.Dense(4)
     ], name = "baseline_model")
 
-model.summary()
+baseline.summary()
 
 #define callback
 callbacks = [
@@ -131,56 +142,142 @@ callbacks = [
     ]
 
 #compile model
-model.compile(
+baseline.compile(
     optimizer = "Adam",
     loss = keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics = ["accuracy"]
     )
 
 #train model
-model.fit(
+history_baseline = baseline.fit(
     x = train,
-    epochs = 1,
-    batch_size = 2,
+    epochs = 2,
+    batch_size = BATCH_SIZE,
     callbacks = callbacks,
-    validation_data = test,
+    validation_data = validation,
     verbose=2
     )
 
-from keras.applications.vgg16 import VGG16
+#plot loss and accuracy
+fun.plot_accuracy(
+    history = history_baseline,
+    save_location = "..\\plots\\accuracy_baseline.png",
+    save = True
+    )
+fun.plot_loss(
+    history = history_baseline,
+    save_location = "..\\plots\\loss_baseline.png",
+    save = True
+    )
 
-model = keras.applications.VGG16(include_top=True, weights="imagenet")
-base_input = model.layers[0].input
-base_output = model.layers[-0].output
-final_output = keras.layers.Dense(4)(base_output)
-new_model = keras.Model(inputs=base_input, outputs=final_output)
+#in-sample, out-of-sample performance
+train_loss, train_accurary = baseline.evaluate(train, steps = 10)
+test_loss, test_accuracy = baseline.evaluate(test, steps = 10)
 
-new_model.compile(
-    optimizer = "Adam",
+#confusion matrix & classification report for training and testing data
+fun.get_metrics(
+    data = train,
+    model = baseline
+    )
+fun.get_metrics(
+    data = test,
+    model = baseline
+    )
+
+#save model
+baseline.save("..\\models\\baseline.h5")
+
+#################### Transfer Learning #####################
+
+#specify VGG19 Model
+vgg19 = VGG19(
+    include_top = False,
+    weights = "imagenet",
+    input_shape = (IMG_WIDTH, IMG_HEIGHT, 1),
+    pooling = max,
+    classes=1000,
+    classifier_activation="softmax",
+    )
+
+#get model summary
+vgg19.summary()
+
+#plot model summary
+plot_model(
+    model = vgg19, 
+    to_file = "..\\plots\\untuned_vgg19.png",
+    show_layer_names = True,
+    rankdir = 'LR', #horizontal Plot
+    expand_nested=True,
+    dpi = 300
+    )
+
+#freeze all layers (use weights from ImageNet)
+for  layer in vgg19.layers:
+    layer.trainable = False
+
+#create Transfer Learning Model that first processes the data with the vgg19 architecture
+#and then predicts with a newly trained dense layer.
+deepnet = keras.Sequential([
+    vgg19,
+    keras.layers.Flatten(),
+    keras.layers.Dense(4, activation = "softmax")
+    ], name = "deepnet")
+
+#get modelinfo
+deepnet.summary()
+
+#plot whole model
+plot_model(
+    model = deepnet, 
+    to_file = "..\\plots\\deepnet.png",
+    show_layer_names = True,
+    rankdir = 'LR', #horizontal Plot
+    expand_nested=True,
+    dpi = 300
+    )
+
+#compile model
+deepnet.compile(
+    optimizer = "Adadelta",
     loss = keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics = ["accuracy"]
     )
 
-new_model.fit(
+#fit model
+history_deepnet = deepnet.fit(
     x = train,
-    epochs = 1,
+    epochs = 30,
     batch_size = BATCH_SIZE,
-    validation_data = test,
+    validation_data = validation,
     verbose=2
     )
 
-VGG16 = VGG16(
-    weights="imagenet",
-    include_top=True,
-    classifier_activation="softmax"
+#in-sample, out-of-sample performance
+train_loss, train_accurary = deepnet.evaluate(train, steps = 10)
+test_loss, test_accuracy = deepnet.evaluate(test, steps = 10)
+
+#confusion matrix & classification report
+fun.get_metrics(
+    data = train,
+    model = deepnet
+    )
+fun.get_metrics(
+    data = test,
+    model = deepnet
     )
 
-model.fit(
-    x = train,
-    epochs = 1,
-    batch_size = BATCH_SIZE,
-    callbacks = callbacks,
-    validation_data = test,
-    verbose=2
+#plot loss and accuracy
+fun.plot_accuracy(
+    history = history_deepnet,
+    save_location = "..\\plots\\accuracy_deepnet.png",
+    save = True
     )
-model.summary()
+fun.plot_loss(
+    history = history_deepnet,
+    save_location = "..\\plots\\loss_deepnet.png",
+    save = True
+    )
+
+#save model
+deepnet.save("..\\models\\deepnet.h5")

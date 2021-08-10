@@ -10,6 +10,8 @@ import random
 import shutil
 import matplotlib.pyplot as plt
 import matplotlib.image as im
+import numpy as np
+from sklearn.metrics import confusion_matrix, classification_report
 
 ######################## count observations in directory #####################
 def count_obs(folder_path):
@@ -67,7 +69,7 @@ def balance_check(folder_path, class_names, number_of_obs, normalize=False):
 
 
 ########################## draw sample images #############################
-def show_sample_img(img_path, col_names):
+def show_sample_img(img_path, col_names, save_img=False):
     
     # empty list to fill with images (nparrays)
     images = []
@@ -92,6 +94,10 @@ def show_sample_img(img_path, col_names):
     pic3.imshow(images[2], cmap="gray")
     pic4.imshow(images[3], cmap="gray")
     fig.tight_layout()
+    
+    #optional: save image to plots folder
+    if save_img == True:
+        fig.savefig(fname = "..\\plots\\sample_images.png", dpi=300)
     
 ###################### make test folder ##########################
 def make_test_folder(test_directory, train_directory, classes, total_number_of_observations, percentage_test_directory):
@@ -125,6 +131,59 @@ def make_test_folder(test_directory, train_directory, classes, total_number_of_o
             rand_image = random.choice(os.listdir(train_path))
             shutil.move(train_path+"\\"+rand_image, test_path)
             num_files += 1
+            
+###################### plot accuracy ##########################
+def plot_accuracy(history, save_location, save=False):
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['training', 'validation'], loc='upper left')
+    if save == True:
+        plt.savefig(fname = save_location, dpi=300)
+    return plt.show()
+
+######################### plot loss ###########################
+def plot_loss(history, save_location, save=False):
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['training', 'validation'], loc='upper left')
+    if save == True:
+        plt.savefig(fname = save_location, dpi=300)
+    return plt.show()
+
+############ returns confusion matrix and classification report ############
+def get_metrics(data, model):
+    # from https://stackoverflow.com/questions/50825936/confusion-matrix-on-images-in-cnn-keras
+    test_steps_per_epoch = np.math.ceil(data.samples / data.batch_size)
+    predictions = model.predict(data, steps = test_steps_per_epoch)
+    predicted_classes = np.argmax(predictions, axis=1)
+    true_classes = data.classes
+    
+    #confusion_matrix
+    print("Confusion Matrix:")
+    print(
+        confusion_matrix(
+            true_classes,
+            predicted_classes
+            )
+        )
+    
+    #classification_report
+    class_labels = list(data.class_indices.keys())
+    print("Classification Report:")
+    print(
+        classification_report(
+            true_classes,
+            predicted_classes,
+            target_names=class_labels,
+            zero_division=1)
+        )
+
 
 
 
