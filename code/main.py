@@ -4,6 +4,9 @@ Created on Sat Jul 31 13:14:31 2021
 
 @author: kilia
 """
+################################## Input #####################################
+##############################################################################
+
 #Libraries
 import os
 import tensorflow as tf
@@ -11,8 +14,6 @@ from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from keras.utils import plot_model
 from keras.applications.vgg19 import VGG19
-from sklearn.metrics import classification_report
-
 
 #setwd
 PATH = "C:\\Users\\kilia\\Documents\\GitHub\\MRIAlzheimersImagePrediction\\code"
@@ -20,6 +21,10 @@ os.chdir(PATH)
 
 #import personal module
 import funcs as fun
+
+
+############################# Global Variables ###############################
+##############################################################################
 
 #import data
 TRAIN_DIRECTORY = "..\\data\\train"
@@ -66,6 +71,10 @@ fun.calc_batch_size_no_remainer(
     min_batch_size = 5
     )
 
+
+############################ Data Augmentation ###############################
+##############################################################################
+
 #data augmentation
 data_generation_train = ImageDataGenerator(
     validation_split = 0.2,
@@ -79,6 +88,10 @@ data_generation_train = ImageDataGenerator(
 data_generation_test = ImageDataGenerator(
     rescale=1./255
     )
+
+
+######################## Load Data From Harddrive ############################
+##############################################################################
 
 #read in training data
 train = data_generation_train.flow_from_directory(
@@ -119,7 +132,19 @@ fun.show_sample_img(
     save_img = False
     )
 
-################### baseline model ##################
+#number of observations
+train.samples
+validation.samples
+test.samples
+
+#check whether the encoding has worked
+train_images, train_labels = train.next()
+print("Batch_size: {}, Number of classes: {}".format(train_labels.shape[0], train_labels.shape[1]))
+
+
+############################## Baseline Model ################################
+##############################################################################
+
 #draw baseline model
 baseline = keras.Sequential([
     keras.layers.InputLayer(input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)),
@@ -143,7 +168,7 @@ callbacks = [
 
 #compile model
 baseline.compile(
-    optimizer = "Adam",
+    optimizer = "Adadelta",
     loss = keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics = ["accuracy"]
     )
@@ -187,7 +212,9 @@ fun.get_metrics(
 #save model
 baseline.save("..\\models\\baseline.h5")
 
-#################### Transfer Learning #####################
+
+############################ Transfer Learning ###############################
+##############################################################################
 
 #specify VGG19 Model
 vgg19 = VGG19(
@@ -232,7 +259,7 @@ plot_model(
     model = deepnet, 
     to_file = "..\\plots\\deepnet.png",
     show_layer_names = True,
-    rankdir = 'LR', #horizontal Plot
+    rankdir = "LR", #horizontal Plot
     expand_nested=True,
     dpi = 300
     )

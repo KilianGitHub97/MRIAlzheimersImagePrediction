@@ -180,8 +180,8 @@ def get_metrics(data, model):
         classification_report(
             true_classes,
             predicted_classes,
-            target_names=class_labels,
-            zero_division=1)
+            target_names = class_labels,
+            zero_division = 1)
         )
 
 
