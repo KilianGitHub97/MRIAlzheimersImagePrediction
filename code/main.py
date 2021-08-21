@@ -16,7 +16,8 @@ from keras.utils import plot_model
 from keras.applications.vgg19 import VGG19
 
 #setwd
-PATH = "C:\\Users\\kilia\\Documents\\GitHub\\MRIAlzheimersImagePrediction\\code"
+PATH = "D:\\Bibliotheken\\Dokumente\\GitHub\\MRIAlzheimersImagePrediction\\code"
+#PATH = "C:\\Users\\kilia\\Documents\\GitHub\\MRIAlzheimersImagePrediction\\code"
 os.chdir(PATH)
 
 #import personal module
@@ -163,12 +164,17 @@ baseline.summary()
 #define callback
 callbacks = [
     keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
-    tf.keras.callbacks.ProgbarLogger(count_mode="samples")
     ]
+
+#Define optimizer
+optimizer = keras.optimizers.SGD(
+    learning_rate=0.001,
+    nesterov=True
+)
 
 #compile model
 baseline.compile(
-    optimizer = "Adadelta",
+    optimizer = optimizer,
     loss = keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics = ["accuracy"]
     )
@@ -176,7 +182,7 @@ baseline.compile(
 #train model
 history_baseline = baseline.fit(
     x = train,
-    epochs = 2,
+    epochs = 30,
     batch_size = BATCH_SIZE,
     callbacks = callbacks,
     validation_data = validation,
@@ -220,7 +226,7 @@ baseline.save("..\\models\\baseline.h5")
 vgg19 = VGG19(
     include_top = False,
     weights = "imagenet",
-    input_shape = (IMG_WIDTH, IMG_HEIGHT, 1),
+    input_shape = (IMG_WIDTH, IMG_HEIGHT, 3),
     pooling = max,
     classes=1000,
     classifier_activation="softmax",
@@ -266,7 +272,7 @@ plot_model(
 
 #compile model
 deepnet.compile(
-    optimizer = "Adadelta",
+    optimizer = optimizer,
     loss = keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics = ["accuracy"]
     )
