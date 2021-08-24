@@ -227,9 +227,7 @@ vgg19 = VGG19(
     include_top = False,
     weights = "imagenet",
     input_shape = (IMG_WIDTH, IMG_HEIGHT, 3),
-    pooling = max,
-    classes=1000,
-    classifier_activation="softmax",
+    pooling = max
     )
 
 #get model summary
@@ -245,6 +243,23 @@ plot_model(
     dpi = 300
     )
 
+
+
+
+###################Exkurs VGG16####################
+from keras.applications.vgg16 import VGG16
+
+vgg16 = VGG16(
+    include_top = False,
+    weights = "imagenet",
+    input_shape = (IMG_WIDTH, IMG_HEIGHT, 3),
+    pooling = max
+    )
+
+for  layer in vgg16.layers:
+    layer.trainable = False
+###################################################
+
 #freeze all layers (use weights from ImageNet)
 for  layer in vgg19.layers:
     layer.trainable = False
@@ -254,6 +269,9 @@ for  layer in vgg19.layers:
 deepnet = keras.Sequential([
     vgg19,
     keras.layers.Flatten(),
+    keras.layers.Dense(4096, activation = "relu"),
+    keras.layers.Dense(4096, activation = "relu"),
+    keras.layers.Dense(1000, activation = "relu"),
     keras.layers.Dense(4, activation = "softmax")
     ], name = "deepnet")
 
@@ -280,9 +298,10 @@ deepnet.compile(
 #fit model
 history_deepnet = deepnet.fit(
     x = train,
+    steps_per_epoch = 128,
     epochs = 30,
     batch_size = BATCH_SIZE,
-    validation_data = validation,
+    validation_data = test,
     verbose=2
     )
 
