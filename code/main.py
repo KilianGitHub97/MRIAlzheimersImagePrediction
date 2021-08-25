@@ -96,7 +96,7 @@ data_generation_test = ImageDataGenerator(
 
 #read in training data
 train = data_generation_train.flow_from_directory(
-    directory = TRAIN_DIRECTORY, 
+    directory = TRAIN_DIRECTORY,
     target_size = (IMG_WIDTH, IMG_HEIGHT),
     color_mode = "rgb",
     class_mode = "categorical",
@@ -107,7 +107,7 @@ train = data_generation_train.flow_from_directory(
 
 #load validation data
 validation = data_generation_train.flow_from_directory(
-    directory = TRAIN_DIRECTORY, 
+    directory = TRAIN_DIRECTORY,
     target_size = (IMG_WIDTH, IMG_HEIGHT),
     color_mode = "rgb",
     class_mode = "categorical",
@@ -269,9 +269,9 @@ for  layer in vgg19.layers:
 deepnet = keras.Sequential([
     vgg19,
     keras.layers.Flatten(),
-    keras.layers.Dense(4096, activation = "relu"),
-    keras.layers.Dense(4096, activation = "relu"),
-    keras.layers.Dense(1000, activation = "relu"),
+    keras.layers.Dense(1096, activation = "relu"),
+    keras.layers.Dense(1096, activation = "relu"),
+    keras.layers.Dense(548, activation = "relu"),
     keras.layers.Dense(4, activation = "softmax")
     ], name = "deepnet")
 
@@ -291,7 +291,7 @@ plot_model(
 #compile model
 deepnet.compile(
     optimizer = optimizer,
-    loss = keras.losses.CategoricalCrossentropy(from_logits=True),
+    loss = keras.losses.CategoricalCrossentropy(from_logits=False),
     metrics = ["accuracy"]
     )
 
@@ -301,7 +301,7 @@ history_deepnet = deepnet.fit(
     steps_per_epoch = 128,
     epochs = 30,
     batch_size = BATCH_SIZE,
-    validation_data = test,
+    validation_data = validation,
     verbose=2
     )
 
