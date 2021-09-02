@@ -13,6 +13,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from keras.utils import plot_model
+from keras.constraints import max_norm
 from keras.applications.vgg19 import VGG19
 
 #setwd
@@ -78,7 +79,6 @@ fun.calc_batch_size_no_remainer(
 
 #data augmentation
 data_generation_train = ImageDataGenerator(
-    validation_split = 0.2,
     rescale = 1./255,
     width_shift_range = 0.1,
     height_shift_range = 0.1,
@@ -101,20 +101,20 @@ train = data_generation_train.flow_from_directory(
     color_mode = "rgb",
     class_mode = "categorical",
     batch_size = BATCH_SIZE,
-    shuffle = True,
-    subset = "training"
+    shuffle = True #,
+    # subset = "training"
     )
 
 #load validation data
-validation = data_generation_train.flow_from_directory(
-    directory = TRAIN_DIRECTORY,
-    target_size = (IMG_WIDTH, IMG_HEIGHT),
-    color_mode = "rgb",
-    class_mode = "categorical",
-    batch_size = BATCH_SIZE,
-    shuffle = True,
-    subset = "validation"
-)
+# validation = data_generation_train.flow_from_directory(
+#     directory = TRAIN_DIRECTORY,
+#     target_size = (IMG_WIDTH, IMG_HEIGHT),
+#     color_mode = "rgb",
+#     class_mode = "categorical",
+#     batch_size = BATCH_SIZE,
+#     shuffle = True,
+#     subset = "validation"
+# )
 
 #load test data
 test = data_generation_test.flow_from_directory(
@@ -135,7 +135,6 @@ fun.show_sample_img(
 
 #number of observations
 train.samples
-validation.samples
 test.samples
 
 #check whether the encoding has worked
@@ -185,7 +184,7 @@ history_baseline = baseline.fit(
     epochs = 30,
     batch_size = BATCH_SIZE,
     callbacks = callbacks,
-    validation_data = validation,
+    validation_data = test,
     verbose=2
     )
 
@@ -244,34 +243,21 @@ plot_model(
     )
 
 
-
-
-###################Exkurs VGG16####################
-from keras.applications.vgg16 import VGG16
-
-vgg16 = VGG16(
-    include_top = False,
-    weights = "imagenet",
-    input_shape = (IMG_WIDTH, IMG_HEIGHT, 3),
-    pooling = max
-    )
-
-for  layer in vgg16.layers:
-    layer.trainable = False
-###################################################
-
-#freeze all layers (use weights from ImageNet)
+#use all layers with weights from ImageNet (not necessary since default)
 for  layer in vgg19.layers:
-    layer.trainable = False
+    layer.trainable = True
 
 #create Transfer Learning Model that first processes the data with the vgg19 architecture
 #and then predicts with a newly trained dense layer.
 deepnet = keras.Sequential([
     vgg19,
     keras.layers.Flatten(),
-    keras.layers.Dense(1096, activation = "relu"),
-    keras.layers.Dense(1096, activation = "relu"),
-    keras.layers.Dense(548, activation = "relu"),
+    keras.layers.Dense(1096, activation = "relu", kernel_constraint=max_norm(2.),  bias_constraint=max_norm(3)),
+    keras.layers.Dropout(0.5),
+    keras.layers.Dense(1096, activation = "relu", kernel_constraint=max_norm(2.),  bias_constraint=max_norm(3)),
+    keras.layers.Dropout(0.5),
+    keras.layers.Dense(548, activation = "relu", kernel_constraint=max_norm(2.),  bias_constraint=max_norm(3)),
+    keras.layers.Dropout(0.5),
     keras.layers.Dense(4, activation = "softmax")
     ], name = "deepnet")
 
@@ -288,6 +274,17 @@ plot_model(
     dpi = 300
     )
 
+#define callback
+callbacks = [
+    keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
+    ]
+
+#define optimizer
+optimizer = keras.optimizers.SGD(
+    learning_rate=0.001,
+    nesterov=True
+)
+
 #compile model
 deepnet.compile(
     optimizer = optimizer,
@@ -298,13 +295,35 @@ deepnet.compile(
 #fit model
 history_deepnet = deepnet.fit(
     x = train,
-    steps_per_epoch = 128,
     epochs = 30,
     batch_size = BATCH_SIZE,
-    validation_data = validation,
+    callbacks = callbacks,
+    validation_data = test,
     verbose=2
     )
 
+#https://stackoverflow.com/questions/42666046/loading-a-trained-keras-model-and-continue-training
+
+# saving the model in tensorflow format
+deepnet.save(
+    "..\\models",
+    save_format='tf'
+    )
+
+
+# loading the saved model
+loaded_model = tf.keras.models.load_model("..\\models\\deepnet.h5")
+
+loaded_model.fit(
+    train,
+    steps_per_epoch = 128,
+    batch_size = BATCH_SIZE,
+    epochs = 10, 
+    validation_data =validation,
+    verbose=2
+    )
+
+deepnet = loaded_model
 #in-sample, out-of-sample performance
 train_loss, train_accurary = deepnet.evaluate(train, steps = 10)
 test_loss, test_accuracy = deepnet.evaluate(test, steps = 10)
@@ -321,7 +340,7 @@ fun.get_metrics(
 
 #plot loss and accuracy
 fun.plot_accuracy(
-    history = history_deepnet,
+    history = deepnet,
     save_location = "..\\plots\\accuracy_deepnet.png",
     save = True
     )
