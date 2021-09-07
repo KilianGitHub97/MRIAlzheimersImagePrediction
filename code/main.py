@@ -102,19 +102,7 @@ train = data_generation_train.flow_from_directory(
     class_mode = "categorical",
     batch_size = BATCH_SIZE,
     shuffle = True #,
-    # subset = "training"
     )
-
-#load validation data
-# validation = data_generation_train.flow_from_directory(
-#     directory = TRAIN_DIRECTORY,
-#     target_size = (IMG_WIDTH, IMG_HEIGHT),
-#     color_mode = "rgb",
-#     class_mode = "categorical",
-#     batch_size = BATCH_SIZE,
-#     shuffle = True,
-#     subset = "validation"
-# )
 
 #load test data
 test = data_generation_test.flow_from_directory(
@@ -126,6 +114,10 @@ test = data_generation_test.flow_from_directory(
     shuffle = True
     )
 
+
+########################### Inspect Loaded Data ##############################
+##############################################################################
+
 #plot some sample images for the categories
 fun.show_sample_img(
     img_path = TRAIN_DIRECTORY,
@@ -136,6 +128,9 @@ fun.show_sample_img(
 #number of observations
 train.samples
 test.samples
+
+#label equivalence
+train.class_indices.keys() == test.class_indices.keys()
 
 #check whether the encoding has worked
 train_images, train_labels = train.next()
@@ -248,7 +243,7 @@ for  layer in vgg19.layers:
     layer.trainable = True
 
 #create Transfer Learning Model that first processes the data with the vgg19 architecture
-#and then predicts with a newly trained dense layer.
+#and then predicts with newly trained, regularized dense layers.
 deepnet = keras.Sequential([
     vgg19,
     keras.layers.Flatten(),
@@ -302,53 +297,76 @@ history_deepnet = deepnet.fit(
     verbose=2
     )
 
-#https://stackoverflow.com/questions/42666046/loading-a-trained-keras-model-and-continue-training
+#save model
+deepnet.save("..\\models\\deepnet.h5")
 
-# saving the model in tensorflow format
-deepnet.save(
-    "..\\models",
-    save_format='tf'
-    )
 
+############################ Further Train Model #############################
+##############################################################################
 
 # loading the saved model
-loaded_model = tf.keras.models.load_model("..\\models\\deepnet.h5")
+deepnet = tf.keras.models.load_model("..\\models\\deepnet.h5")
 
-loaded_model.fit(
+# train model ahead
+history_deepnet = deepnet.fit(
     train,
-    steps_per_epoch = 128,
     batch_size = BATCH_SIZE,
-    epochs = 10, 
-    validation_data =validation,
+    epochs = 1, 
+    validation_data = test,
     verbose=2
     )
 
-deepnet = loaded_model
+
+########################## Evaluate Trained Model ############################
+##############################################################################
+
 #in-sample, out-of-sample performance
-train_loss, train_accurary = deepnet.evaluate(train, steps = 10)
-test_loss, test_accuracy = deepnet.evaluate(test, steps = 10)
+train_loss, train_accurary = deepnet.evaluate(train, steps = 32)
+test_loss, test_accuracy = deepnet.evaluate(test, steps = 32)
+
+#load dataset with propper labels
+#ImageDataGenerators for training are used with the shuffle=True argument,
+#which is important for propper training (the images must not be passed sorted by
+#their labels). However, the model classes (accessed with .classes) are shuffled
+#as well and cannot be recovered. This gets problematic when trying to evaluate
+#actual labels against predicted labels. Therefore, in order to optain a propper
+#confusion matrix, one has to reload train and test datasets with the shuffle 
+#argument specified as "False".  
+evaluation_train = data_generation_train.flow_from_directory(
+    directory = TRAIN_DIRECTORY,
+    target_size = (IMG_WIDTH, IMG_HEIGHT),
+    color_mode = "rgb",
+    class_mode = "categorical",
+    batch_size = BATCH_SIZE,
+    shuffle = False
+    )
+evaluation_test = data_generation_test.flow_from_directory(
+    directory = TEST_DIRECTORY, 
+    target_size = (IMG_WIDTH, IMG_HEIGHT),
+    color_mode = "rgb",
+    class_mode = "categorical",
+    batch_size = BATCH_SIZE,
+    shuffle = False
+    )
 
 #confusion matrix & classification report
 fun.get_metrics(
-    data = train,
+    data = evaluation_train,
     model = deepnet
     )
 fun.get_metrics(
-    data = test,
+    data = evaluation_test,
     model = deepnet
     )
 
 #plot loss and accuracy
 fun.plot_accuracy(
-    history = deepnet,
-    save_location = "..\\plots\\accuracy_deepnet.png",
+    history = history_deepnet,
+    save_location = "..\\plots\\accuracy6567_deepnet.png",
     save = True
     )
 fun.plot_loss(
     history = history_deepnet,
-    save_location = "..\\plots\\loss_deepnet.png",
+    save_location = "..\\plots\\loss55667_deepnet.png",
     save = True
     )
-
-#save model
-deepnet.save("..\\models\\deepnet.h5")

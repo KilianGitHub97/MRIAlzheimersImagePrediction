@@ -158,9 +158,7 @@ def plot_loss(history, save_location, save=False):
 
 ############ returns confusion matrix and classification report ############
 def get_metrics(data, model):
-    # from https://stackoverflow.com/questions/50825936/confusion-matrix-on-images-in-cnn-keras
-    test_steps_per_epoch = np.math.ceil(data.samples / data.batch_size)
-    predictions = model.predict(data, steps = test_steps_per_epoch)
+    predictions = model.predict(data)
     predicted_classes = np.argmax(predictions, axis=1)
     true_classes = data.classes
     
